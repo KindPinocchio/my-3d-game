@@ -1,8 +1,13 @@
 import * as T from "three";
+import type { WindowAnchor } from "../events/EventModel";
 import { axis, buildings, connected, type Box } from "./World";
 const geometry = new T.BoxGeometry(1, 1, 1),
   solid = new T.MeshLambertMaterial(),
   glow = new T.MeshBasicMaterial();
+export interface ChunkWindow {
+  anchor: WindowAnchor;
+  color: number;
+}
 export class Chunks {
   chunks = new Map<string, T.Group>();
   origin = new T.Vector3();
@@ -36,7 +41,7 @@ export class Chunks {
     for (let k = 18; k < w - 12; k += 12)
       add(k, 0.065, 0, 4, 0.015, 0.12, 0x92938a);
     const selected = this.low
-      ? boxes.filter((b) => !b.detail || b.glow)
+      ? boxes.filter((b) => !b.detail || b.glow || b.window)
       : boxes;
     for (const lit of [false, true]) {
       const bs = selected.filter((b) => !!b.glow === lit);
@@ -56,7 +61,13 @@ export class Chunks {
       mesh.computeBoundingSphere();
       g.add(mesh);
     }
-    g.userData = { i, j };
+    g.userData = {
+      i,
+      j,
+      windows: boxes
+        .filter((b) => b.window)
+        .map((b) => ({ anchor: b.window!, color: b.color })),
+    };
     this.scene.add(g);
     this.chunks.set(`${i},${j}`, g);
     return g;

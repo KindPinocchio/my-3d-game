@@ -1,3 +1,6 @@
+import { WorldEventController, type EventSave } from "../events/EventModel";
+import { EventRenderer } from "../events/EventRenderer";
+import { EventDebug } from "../events/EventDebug";
 import * as T from "three";
 import { Chunks } from "../world/Chunks";
 import { Vehicle, type VehicleState } from "./Vehicle";
@@ -16,6 +19,9 @@ export class Game {
     antialias: false,
     powerPreference: "high-performance",
   });
+  event: WorldEventController;
+  eventRenderer: EventRenderer;
+  eventDebug: EventDebug;
   vehicle: Vehicle;
   chunks: Chunks;
   atmos: Atmosphere;
@@ -35,11 +41,13 @@ export class Game {
   aim = new T.Vector3();
   constructor() {
     let state: VehicleState | undefined;
+    let eventSave: Partial<EventSave> | undefined;
     try {
       const s = JSON.parse(localStorage.getItem("grey-city-v1") || "null");
       if (s?.version === 1) {
         if (Number.isInteger(s.seed)) this.seed = s.seed;
         state = s.vehicle;
+        eventSave = s.event;
         this.settings = {
           quality: ["Low", "Medium", "High"].includes(s.settings?.quality)
             ? s.settings.quality
@@ -51,6 +59,9 @@ export class Game {
     } catch {
       /* Invalid saves safely start a new drive. */
     }
+    this.event = new WorldEventController(this.seed ^ 7183, eventSave);
+    this.eventRenderer = new EventRenderer(this.scene);
+    this.eventDebug = new EventDebug(this.event, () => this.save());
     this.vehicle = new Vehicle(this.seed, state);
     this.renderer.outputColorSpace = T.SRGBColorSpace;
     document.getElementById("app")!.prepend(this.renderer.domElement);
@@ -117,6 +128,7 @@ export class Game {
           seed: this.seed,
           vehicle: this.vehicle.state,
           settings: this.settings,
+          event: this.event.save(),
         }),
       );
     } catch {
@@ -170,7 +182,9 @@ export class Game {
   }
   frame(time: number) {
     requestAnimationFrame((t) => this.frame(t));
-    const dt = this.last ? Math.min((time - this.last) / 1000, 0.05) : 0;
+    const realDt = this.last ? Math.max(0, (time - this.last) / 1000) : 0;
+    const dt = Math.min(realDt, 0.05);
+    this.event.tick(realDt, this.paused);
     this.last = time;
     if (!this.paused) {
       for (let t = dt; t > 0; t -= 1 / 60)
@@ -204,6 +218,8 @@ export class Game {
       this.car.position,
       this.settings.dust,
     );
+    this.eventRenderer.update(this.chunks, this.event, p, this.camera);
+    this.eventDebug.update(this.event, this.eventRenderer);
     this.renderer.render(this.scene, this.camera);
     this.frames++;
     this.fpsTimer += dt;

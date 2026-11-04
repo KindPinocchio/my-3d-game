@@ -180,3 +180,45 @@ footer {
     font-size: 26px;
   }
 }
+#event-debug {
+  position: fixed;
+  right: 12px;
+  top: 78px;
+  z-index: 8;
+  background: #23302ff0;
+  border: 1px solid #8e9780;
+  padding: 10px;
+  max-width: 300px;
+  max-height: calc(100dvh - 190px);
+  overflow: auto;
+  font-size: 12px;
+  touch-action: pan-y;
+}
+#event-debug summary {
+  min-height: 24px;
+  cursor: pointer;
+}
+#event-debug label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+#event-debug button {
+  font-size: 12px;
+  min-height: 40px;
+  padding: 8px;
+  margin: 4px;
+}
+#event-debug input {
+  width: 120px;
+}
+#event-debug select {
+  max-width: 170px;
+  min-height: 40px;
+  padding: 6px;
+}
+#event-debug p {
+  font: 11px monospace;
+}

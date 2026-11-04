@@ -1,3 +1,4 @@
+import type { WindowAnchor } from "../events/EventModel";
 export interface Point {
   x: number;
   z: number;
@@ -58,6 +59,7 @@ export interface Box {
   color: number;
   glow?: boolean;
   detail?: boolean;
+  window?: WindowAnchor;
 }
 const palette = [0x777b77, 0x89887e, 0x727875, 0x82796d, 0x77716a];
 export function buildings(seed: number, n: Node): Box[] {
@@ -100,6 +102,7 @@ export function buildings(seed: number, n: Node): Box[] {
       box(x, h + 0.3, z, bw + 1, 0.6, bd + 1, 0x555b59);
       box(x, 1.6, z + bd / 2 + 0.5, 2, 3, 0.6, 0x373e3d);
       box(x, 3.3, z + bd / 2 + 1, 4, 0.25, 2, 0x606461);
+      let windowId = (a * 2 + b) * 1000;
       for (let side = -1; side <= 1; side += 2)
         for (let f = 0; f < floors; f++)
           for (let q = 0; q < Math.floor(bw / 3); q++) {
@@ -115,6 +118,15 @@ export function buildings(seed: number, n: Node): Box[] {
               lit,
               true,
             );
+            // Use street-facing, upper-floor residential windows without balconies.
+            if (
+              (style < 2 || (style === 2 && f > 0)) &&
+              f > 0 &&
+              side === (b === 0 ? -1 : 1) &&
+              !(style === 1 && q % 3 === 1)
+            )
+              attachWindow(out[out.length - 1], windowId, a * 2 + b, 0, side);
+            windowId++;
             if (style === 1 && q % 3 === 1)
               box(
                 x - bw / 2 + 1.7 + q * 3,
@@ -130,7 +142,7 @@ export function buildings(seed: number, n: Node): Box[] {
           }
       for (let side = -1; side <= 1; side += 2)
         for (let f = 0; f < floors; f++)
-          for (let q = 0; q < Math.floor(bd / 3); q++)
+          for (let q = 0; q < Math.floor(bd / 3); q++) {
             box(
               x + side * (bw / 2 + 0.06),
               2 + f * 3.1,
@@ -142,6 +154,14 @@ export function buildings(seed: number, n: Node): Box[] {
               false,
               true,
             );
+            if (
+              (style < 2 || (style === 2 && f > 0)) &&
+              f > 0 &&
+              side === (a === 0 ? -1 : 1)
+            )
+              attachWindow(out[out.length - 1], windowId, a * 2 + b, side, 0);
+            windowId++;
+          }
       if (style === 2) {
         box(x, 3.1, z + bd / 2 + 0.8, bw, 0.45, 2, 0x555e53);
         box(x, 2, z + bd / 2 + 0.12, bw - 3, 1.5, 0.15, 0x57615b);
@@ -177,4 +197,26 @@ export function buildings(seed: number, n: Node): Box[] {
   box(13, 0.6, 17, 2, 1.2, 1.4, 0x4c594f);
   box(w - 13, 0.45, d - 15, 3, 0.3, 1, 0x6e7064);
   return out;
+}
+
+// Attached to the actual pane, so event sources cannot drift away from their facade.
+function attachWindow(
+  box: Box,
+  id: number,
+  building: number,
+  nx: number,
+  nz: number,
+): void {
+  box.window = {
+    id,
+    building,
+    nx,
+    nz,
+    x: box.x,
+    y: box.y,
+    z: box.z,
+    w: box.w,
+    h: box.h,
+    d: box.d,
+  };
 }
